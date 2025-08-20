@@ -4,6 +4,10 @@ from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib import messages
 from django.contrib.auth import logout
 from django.contrib.auth.models import User
+from products.models import Product
+from orders.models import Order
+from django.db import models   # <-- needed for Sum
+
 
 
 
@@ -49,3 +53,27 @@ def admin_profile(request):
         messages.success(request, 'Profile updated successfully!')
 
     return render(request, 'admin_panel/profile.html', {'user': user})
+
+
+
+
+def dashboard(request):
+    total_users = User.objects.count()
+    total_products = Product.objects.count()
+    total_orders = Order.objects.count()
+    total_revenue = Order.objects.filter(status='completed').aggregate(
+        total=models.Sum('total_price')
+    )['total'] or 0
+
+    latest_users = User.objects.order_by('-date_joined')[:5]   # last 5 users
+    latest_orders = Order.objects.order_by('-created_at')[:5]  # last 5 orders
+
+    context = {
+        'total_users': total_users,
+        'total_products': total_products,
+        'total_orders': total_orders,
+        'total_revenue': total_revenue,
+        'latest_users': latest_users,
+        'latest_orders': latest_orders
+    }
+    return render(request, 'admin_panel/dashboard.html', context)
